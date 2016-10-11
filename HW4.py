@@ -1,16 +1,14 @@
 import numpy as np
 import numpy.linalg as linalg
+import random as rand
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
 
-
-fisherData = []
 
 def main():
 	#part1()
-	part2()
+	#part2()
+	part2_def()
 
 '''
 Answers to HW4 Q4.
@@ -20,13 +18,115 @@ def part2():
 	global X, y, what
 	print('Running HW4.py main...')
 	fisherData = np.loadtxt('./fisher.csv', delimiter=',')
-	# print(fisherData)
+
+	#HW4, Q4, Part a.
 	X = np.hstack((np.ones((fisherData.shape[0], 1)), fisherData[:, :-1]))
 	y = fisherData[:, -1]
 	#w = linalg.lstsq(X, y)
 	what = linalg.inv(np.dot(X.T,X)).dot(X.T).dot(y).reshape((X.shape[1],1))
 	yPredicted = distancePrediction(X.dot(what), [-1, 0, 1])
-	print(yPredicted)
+	#Calculate average error. (Total - CorrectlyClassified)/ Total
+	#Note, y[i]-yPredicted[i] == 0 only when y[i] == yPredicted[i]
+	averageError = (X.shape[0] - list(y - yPredicted).count(0))/float(X.shape[0])
+	print('Q4a, Average Error: ' + str(averageError))
+
+	#HW4, Q4, Part b.
+	# totalErrors, avgError = crossValidateError(X, y, k=40, trials=10000)
+	# print('Q4b, Total Average of Errors: ' + str(avgError))
+
+	#HW4, Q4, Part c.
+	plotErrorVsTrainSetSize(X, y)
+
+def part2_def():
+	global fisherData
+	global X, y, what
+	print('Running HW4.py main...')
+	fisherData = np.loadtxt('./fisher.csv', delimiter=',')
+
+	# HW4, Q4, Part d.
+	X = fisherData[:, :3]
+	y = fisherData[:, -1]
+	what = linalg.inv(np.dot(X.T, X)).dot(X.T).dot(y).reshape((X.shape[1], 1))
+	yPredicted = distancePrediction(X.dot(what), [-1, 0, 1])
+	# Calculate average error. (Total - CorrectlyClassified)/ Total
+	# Note, y[i]-yPredicted[i] == 0 only when y[i] == yPredicted[i]
+	averageError = (X.shape[0] - list(y - yPredicted).count(0)) / float(X.shape[0])
+	print('Q4c, Average Error: ' + str(averageError))
+
+	# HW4, Q4, Part e.
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.scatter(list(X[:50, 0]), list(X[:50, 1]), zs=list(X[:50, 2]))
+	ax.scatter(list(X[50:100, 0]), list(X[50:100, 1]), zs=list(X[50:100, 2]))
+	ax.scatter(list(X[100:150, 0]), list(X[100:150, 1]), zs=list(X[100:150, 2]))
+	plt.show()
+
+
+def plotErrorVsTrainSetSize(X, y):
+	errorAverages = []
+	for k in range(1, 50):
+		print('Itteration: ' + str(k))
+		try:
+			totalErrors, avgError = crossValidateError(X, y, k=k, trials=1000)
+		except:
+			print('Encountered singular matrix on iteration: ' + str(k))
+			continue
+		errorAverages.append((k, avgError))
+
+	plt.plot(list(map(lambda item: item[0], errorAverages)), list(map(lambda item: item[1], errorAverages)))
+	plt.scatter(list(map(lambda item: item[0], errorAverages)), list(map(lambda item: item[1], errorAverages)), color='r')
+	plt.title('Classification error vs training set size.')
+	plt.xlabel('Training set size.')
+	plt.ylabel('Test set error.')
+	plt.xticks((1, 50))
+	plt.show()
+
+def crossValidateError(X, y, k, trials):
+	#HW4, Q4, Part b.
+	totalErrors = 0
+	for i in range(0, trials):
+		xtr1, ytr1, xte1, yte1 = testTrainSplit(X[:50], y[:50], k=k)
+		xtr2, ytr2, xte2, yte2 = testTrainSplit(X[50:100], y[50:100], k=k)
+		xtr3, ytr3, xte3, yte3 = testTrainSplit(X[100:150], y[100:150], k=k)
+		Xtrain = np.vstack((xtr1, xtr2, xtr3))
+		Ytrain = np.vstack((ytr1, ytr2, ytr3))
+		Xtest = np.vstack((xte1, xte2, xte3))
+		Ytest = np.vstack((yte1, yte2, yte3))
+
+		what = linalg.inv(np.dot(Xtrain.T, Xtrain)).dot(Xtrain.T).dot(Ytrain).reshape((Xtrain.shape[1], 1))
+		yPredicted = distancePrediction(Xtest.dot(what), [-1, 0, 1])
+		yPredicted = yPredicted.reshape((yPredicted.size, 1))
+		# Calculate average error. (Total - CorrectlyClassified)/ Total
+		# Note, y[i]-yPredicted[i] == 0 only when y[i] == yPredicted[i]
+		error = Xtest.shape[0] - list(Ytest - yPredicted).count(0)
+		totalErrors += error
+	return totalErrors, totalErrors/float(trials*(50-k)*3.0)
+
+
+
+
+'''
+Break the data into test and train sets, with train sets of size k.
+'''
+def testTrainSplit(X, y, k):
+	testIndexList = list(range(0, X.shape[0]))
+	trainIndexList = []
+
+	#Build train set index randomly.
+	for i in range(0, k):
+		randIndex = rand.randint(0, len(testIndexList) - 1)
+		trainIndexList.append(testIndexList[randIndex])
+		testIndexList.remove(testIndexList[randIndex])
+
+	Xtrain = X[trainIndexList]
+	Ytrain = y[trainIndexList].reshape((y[trainIndexList].size, 1))
+	Xtest = X[testIndexList]
+	Ytest = y[testIndexList].reshape((y[testIndexList].size, 1))
+
+	return Xtrain, Ytrain, Xtest, Ytest
+
+
+
 
 '''
 Compare the distance of a prediction to each one of the labels, and
