@@ -1,5 +1,9 @@
 import numpy as np
 import numpy.linalg as linalg
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
 
 
 fisherData = []
@@ -16,13 +20,30 @@ def part2():
 	global X, y, what
 	print('Running HW4.py main...')
 	fisherData = np.loadtxt('./fisher.csv', delimiter=',')
-	print(fisherData)
+	# print(fisherData)
 	X = np.hstack((np.ones((fisherData.shape[0], 1)), fisherData[:, :-1]))
 	y = fisherData[:, -1]
 	#w = linalg.lstsq(X, y)
 	what = linalg.inv(np.dot(X.T,X)).dot(X.T).dot(y).reshape((X.shape[1],1))
-	print(what)
-	
+	yPredicted = distancePrediction(X.dot(what), [-1, 0, 1])
+	print(yPredicted)
+
+'''
+Compare the distance of a prediction to each one of the labels, and
+assign the label that is the closest.
+'''
+def distancePrediction(y, labels):
+	yPred = []
+	for yVal in y:
+		minDist = linalg.norm(yVal - labels[0])
+		currentPred = labels[0]
+		for label in labels:
+			if abs(yVal - label) < minDist:
+				currentPred = label
+		yPred.append(currentPred)
+	return np.array(yPred)
+
+
 
 '''
 Answers to HW4 Q2 and Q3.
