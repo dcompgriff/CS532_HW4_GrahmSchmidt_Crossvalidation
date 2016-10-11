@@ -5,9 +5,29 @@ import numpy.linalg as linalg
 fisherData = []
 
 def main():
+	#part1()
+	part2()
+
+'''
+Answers to HW4 Q4.
+'''
+def part2():
 	global fisherData
+	global X, y, what
 	print('Running HW4.py main...')
 	fisherData = np.loadtxt('./fisher.csv', delimiter=',')
+	print(fisherData)
+	X = np.hstack((np.ones((fisherData.shape[0], 1)), fisherData[:, :-1]))
+	y = fisherData[:, -1]
+	#w = linalg.lstsq(X, y)
+	what = linalg.inv(np.dot(X.T,X)).dot(X.T).dot(y).reshape((X.shape[1],1))
+	print(what)
+	
+
+'''
+Answers to HW4 Q2 and Q3.
+'''
+def part1():
 	A = np.array([[3, 1],
 	     [0, 3],
 	     [0, 4]])
