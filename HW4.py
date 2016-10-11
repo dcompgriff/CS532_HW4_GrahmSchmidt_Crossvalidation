@@ -56,10 +56,53 @@ def part2_def():
 	# HW4, Q4, Part e.
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
-	ax.scatter(list(X[:50, 0]), list(X[:50, 1]), zs=list(X[:50, 2]))
-	ax.scatter(list(X[50:100, 0]), list(X[50:100, 1]), zs=list(X[50:100, 2]))
-	ax.scatter(list(X[100:150, 0]), list(X[100:150, 1]), zs=list(X[100:150, 2]))
-	plt.show()
+	ax.set_xlabel('x')
+	ax.set_xlim((0, 10))
+	ax.set_ylabel('y')
+	ax.set_ylim((0, 10))
+	ax.set_zlabel('z')
+	ax.set_zlim((0, 10))
+	ax.scatter(list(X[:50, 0]), list(X[:50, 1]), zs=list(X[:50, 2]), c='r')
+	ax.scatter(list(X[50:100, 0]), list(X[50:100, 1]), zs=list(X[50:100, 2]), c='b')
+	ax.scatter(list(X[100:150, 0]), list(X[100:150, 1]), zs=list(X[100:150, 2]), c='g')
+
+	c1 = np.linspace(-1, 1.5, num=100)
+	c2 = np.linspace(-1, 9, num=10)
+	xyzList = []
+	for cVal in c1:
+		for c2Val in c2:
+			mx = 10*cVal
+			my = c2Val
+			mz = 7*cVal
+			xyzList.append((mx, my, mz))
+	#ax.scatter(list(map(lambda item: item[0], xyzList)), list(map(lambda item: item[1], xyzList)), zs=list(map(lambda item: item[2], xyzList)), c='k')
+	#plt.show()
+
+	'''
+	C represents the subspace vector span choosen by inspection from part e.
+	The solution for part f is as follows:
+	1) Project each (x, y, z) point onto the span by solving the equation C*<ai, bi> = <xi, yi, zi>
+	using least squares for each point.
+	2) Now each point is of the form <ai,bi> with associated yi. The model form is w0 + w1*ai + w2*bi = yi.
+	3) Solve for the weights w0, w1, and w2 in this least squares problem.
+	4) Classify the points and calculate the error as in early problem parts.
+	'''
+	C = [[0, 10],
+	     [1, 0],
+	     [0, 7]]
+	projectedX = []
+	for xVector in X[:, :3]:
+		coordinates = linalg.lstsq(C, xVector)
+		projectedX.append(list(coordinates[0]))
+	projectedX = np.array(projectedX)
+	Xsubspace = np.hstack((np.ones((projectedX.shape[0], 1)), projectedX))
+	what = linalg.lstsq(Xsubspace, y)[0]
+	what = what.reshape((what.size, 1))
+	yPredicted = distancePrediction(Xsubspace.dot(what), [-1, 0, 1])
+	# Calculate average error. (Total - CorrectlyClassified)/ Total
+	# Note, y[i]-yPredicted[i] == 0 only when y[i] == yPredicted[i]
+	averageError = (Xsubspace.shape[0] - list(y - yPredicted).count(0)) / float(Xsubspace.shape[0])
+	print('Q4f, Average Error: ' + str(averageError))
 
 
 def plotErrorVsTrainSetSize(X, y):
